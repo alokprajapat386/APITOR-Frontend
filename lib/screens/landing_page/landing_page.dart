@@ -1,0 +1,700 @@
+import 'dart:convert';
+
+import 'package:apitor/analytics/service/storage/jwt_token_storage_service.dart';
+import 'package:apitor/analytics/service/storage/user_profile_storage_service.dart';
+import 'package:apitor/components/pop_up_card.dart';
+import 'package:apitor/screens/charts/dynamic_bar_chart.dart';
+import 'package:apitor/screens/charts/dynamic_line_chart.dart';
+import 'package:apitor/screens/dashboard/metrics_analytics.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+class LandingPage extends StatefulWidget {
+  const LandingPage({super.key});
+
+  @override
+  State<LandingPage> createState() => _LandingPageState();
+}
+
+class _LandingPageState extends State<LandingPage> {
+
+  static  Color green  = Colors.green.shade500;
+  static  Color orange = Colors.orange.shade400; 
+  static  Color red    = Colors.red.shade400; 
+  static  Color blue   = Colors.blue.shade400;
+
+    final Widget latencyCard=PopupHoverCard(
+      child: ChartCard(
+        title: 'API Hits',
+        legendColors: [green, orange, red],
+        legendLabels: ['Average latency', 'P50 latency', 'P99 latency'],
+        chart:DynamicLineChart(
+          dataList:  [
+            {'time': '10:00', 'Avg': 120, 'P50': 95,  'P99': 420},
+            {'time': '10:05', 'Avg': 125, 'P50': 98,  'P99': 410},
+            {'time': '10:10', 'Avg': 140, 'P50': 110, 'P99': 530},
+            {'time': '10:15', 'Avg': 290, 'P50': 210, 'P99': 890}, 
+            {'time': '10:20', 'Avg': 150, 'P50': 115, 'P99': 460}, 
+            {'time': '10:25', 'Avg': 115, 'P50': 90,  'P99': 310},
+            {'time': '10:30', 'Avg': 110, 'P50': 88,  'P99': 295},
+            {'time': '10:35', 'Avg': 135, 'P50': 102, 'P99': 510},
+            {'time': '10:40', 'Avg': 190, 'P50': 150, 'P99': 680}, 
+            {'time': '10:45', 'Avg': 122, 'P50': 94,  'P99': 415},
+          ],
+          dataKeys: ['Avg', 'P50', 'P99'],
+          lineColors:  [green, orange, red],
+          xAxisKey: 'time',
+          chartHeight: 240,
+        ),
+        backgroundColor: Colors.transparent,
+      
+      ),
+    );
+
+    final Widget httpMethodCard=PopupHoverCard(
+      child: ChartCard(
+        title: 'HTTP Methods',
+        legendColors:[green, orange, blue,red],
+        legendLabels: ['GET', 'POST', 'PUT', 'DELETE'],
+        chart:DynamicBarChart(
+        dataList: [
+          {'time': '10:00', 'POST': 120, 'PUT': 95,  'GET': 420,  'DELETE': 24},
+          {'time': '10:05', 'POST': 125, 'PUT': 98,  'GET': 410,  'DELETE': 23},
+          {'time': '10:10', 'POST': 140, 'PUT': 110, 'GET': 530,  'DELETE': 34},
+          {'time': '10:15', 'POST': 290, 'PUT': 210, 'GET': 890,  'DELETE': 64}, 
+          {'time': '10:20', 'POST': 150, 'PUT': 115, 'GET': 460,  'DELETE': 24}, 
+          {'time': '10:25', 'POST': 115, 'PUT': 90,  'GET': 310,  'DELETE': 57},
+          {'time': '10:30', 'POST': 110, 'PUT': 88,  'GET': 295,  'DELETE': 59},
+          {'time': '10:35', 'POST': 135, 'PUT': 102, 'GET': 510,  'DELETE': 73},
+          {'time': '10:40', 'POST': 190, 'PUT': 150, 'GET': 680,  'DELETE': 24}, 
+          {'time': '10:45', 'POST': 122, 'PUT': 94,  'GET': 415,  'DELETE': 34},
+        ],
+          dataKeys: ['GET', 'POST', 'PUT', 'DELETE'],
+          barColors:  [green, orange,blue, red],
+          xAxisKey: 'time',
+          chartHeight: 240,
+        ),
+        backgroundColor: Colors.transparent,
+        
+      ),
+    );
+
+
+  Future<void> navigateToMainPage() async {
+    final token = await JwtTokenStorage.getToken();
+
+
+    if(token==null || token.isEmpty){
+        if(!mounted) return;
+        context.go('/auth/login');
+    }else{
+        try{
+          if(!JwtDecoder.isExpired(token) && mounted){
+            context.go('/dashboard');
+          }else{
+            JwtTokenStorage.clearToken();
+            UserProfileStorageService.clearProfile();
+            if(mounted){
+              context.go('/auth/login');
+            }
+          }
+        }catch(e){
+          JwtTokenStorage.clearToken();
+          UserProfileStorageService.clearProfile();
+          if(mounted){
+              context.go('/auth/login');
+          }
+        }
+    }
+
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    double screenWidth = MediaQuery.of(context).size.width;
+    bool isMobile = screenWidth<350;
+    return Scaffold(
+      body: Container(
+        
+        // width: MediaQuery.of(context).size.width*0.75,
+       
+         decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.primaryColor.withValues(alpha: 0.03),
+              theme.scaffoldBackgroundColor,
+              theme.primaryColor.withValues(alpha: 0.05),
+            ],
+          ),
+        ),
+        child:SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 80),
+          
+          child: Center(
+          
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Container(
+                constraints: BoxConstraints(
+                  minWidth: isMobile?300:750, 
+                  maxWidth: isMobile?(screenWidth * 0.75 < 300 ? 300 : screenWidth * 0.75):
+                  (screenWidth * 0.6 < 750 ? 750 : screenWidth * 0.6)
+                ),
+                
+                
+                child:Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: theme.primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: theme.primaryColor.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.bolt_rounded,
+                              size: 16, color: theme.primaryColor),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Apitor ·  API Analytics Tool',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.primaryColor,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                              
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height:32),
+                    Text(
+                      'Know Exactly How Your\nAPI Behaves',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.displayLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black87,
+                        height: 1.2,
+                       
+                      ),
+                    ),
+                    Text(
+                      'Track request hits, unique visitors, latency, and method '
+                      'frequency for every endpoint \n— then plan your next move '
+                      'with data instead of guesswork.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: Colors.grey[600],
+                        height: 1.5,
+                      ),
+                    ),
+                    SizedBox(height:24),
+                    Flex(
+                      direction: (isMobile? Axis.vertical:Axis.horizontal),
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: ()=>navigateToMainPage(),
+                          icon: const Icon(Icons.rocket_launch_outlined,
+                              size: 20),
+                          label: const Text('Continue Your API Journey'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 32, vertical: 18),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            elevation: 0,
+                            shadowColor: Colors.transparent,
+                          ),
+                       
+              
+                        ),
+                        SizedBox(width: 12, height:12),
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            
+                            final String configString = await rootBundle.loadString('assets/config.json');
+                            final Map<String, dynamic> configJson = jsonDecode(configString);
+                            final String? githubUrl = configJson['GITHUB_LINK'];
+
+                            final Uri url = Uri.parse(githubUrl ?? 'https://github.com/repository-name/');
+                            if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                               if (!context.mounted) return;
+              
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext dialogContext) {
+                              final theme = Theme.of(dialogContext);
+                              
+                              return Dialog(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20.0),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min, 
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor: Colors.red.withValues(alpha: 0.1),
+                                        child: const Icon(Icons.link_off_rounded, color: Colors.red, size: 28),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      const Text(
+                                        'Could Not Launch Link',
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      
+                                      Text(
+                                        'We were unable to open the GitHub repository link. Please verify if a browser is installed on your device or try again later.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(color: theme.hintColor, fontSize: 13, height: 1.4),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: theme.primaryColor,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                            padding: const EdgeInsets.symmetric(vertical: 12),
+                                          ),
+                                          onPressed: () => Navigator.pop(dialogContext), 
+                                          child: const Text('Dismiss', style: TextStyle(fontWeight: FontWeight.bold)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+                          );
+                            }
+                        
+                          },
+                          icon: const FaIcon(
+                               FontAwesomeIcons.github,
+                              size: 20),
+                              
+                          label: const Text('View Repository On Github'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black.withValues(alpha:0.7),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 32, vertical: 18),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            elevation: 0,
+                            shadowColor: Colors.transparent,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 40,),
+                    Text(
+                      'Visualize How Your API Performs',
+                      textAlign: TextAlign.start,
+                      style: theme.textTheme.displaySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                        height: 1.2,
+                       
+                      ),
+                    ),
+                    SizedBox(height:15),
+                    Flex(
+                      direction: (isMobile? Axis.vertical:Axis.horizontal),
+                      
+                      children: [
+                        isMobile? latencyCard : Expanded(flex: 1, child: latencyCard),
+                        isMobile? SizedBox(height:12): SizedBox(width: 12),
+                        isMobile? httpMethodCard : Expanded(flex: 1, child: httpMethodCard),
+                      ],
+                    ),
+                    SizedBox(height: 30,),
+                    SizedBox(
+                      width: double.infinity,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Icon(
+                             Icons.flash_on_rounded,
+                             color: theme.primaryColor,
+
+                          ),
+                          SizedBox(width: 10,),
+                          Text(
+                            'Features ',
+                            textAlign: TextAlign.start,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight:  FontWeight.bold,
+                              color: Colors.black87
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+              
+                    SizedBox(height:12),
+                    GridView.count(
+                      crossAxisCount: (isMobile? 1: 2),
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 12,
+                      childAspectRatio: isMobile? 1.65:2.4,
+                      mainAxisSpacing: 12,
+                      children: [
+                        FeatureCard(
+                          icon: Icons.speed_rounded,
+                          title: 'Track Request Latency',
+                          description: 'Just not average but also see the distributions  of latency P50 and P99 to have a more accurate insights',
+                        ),
+                        FeatureCard(
+                          icon: Icons.bar_chart_outlined,
+                          title: 'Chart Based Visualizations',
+                          description: 'Don\'t just read anymore, visualize the API metrics with beautiful line and bar charts with predictable color scheme',
+                        ),
+                        FeatureCard(
+                          icon: Icons.admin_panel_settings_outlined,
+                          title: 'Isolation and Security',
+                          description: 'Your data is strictly yours. Built with user isolation  ensuring that no user can ever intercept or view other accounts\' telemetry or profile details',
+                        ),
+                        FeatureCard(
+                          icon: Icons.key_outlined,
+                          title: 'Google OAuth and JWT Security',
+                          description: 'Experience smooth onboarding with secure Google Sign-In, coupled with JWT authentication to keep every API handshake light and verified.',
+                        ),
+                        FeatureCard(
+                          icon: Icons.analytics_outlined,
+                          title: 'Detect Endpoint Bottlenecks',
+                          description: 'Analyze real-time request volume streams alongside route-level tracking and latency distributions to see the bottlenecks.',
+                        ),
+                        FeatureCard(
+                          icon: Icons.storage_outlined,
+                          title: 'Optimized Database Scheme design',
+                          description: 'All your request metrics are safely backed by a highly optimized PostgreSQL database , built for indexing fast time-series telemetry data.',
+                        )
+                      ],
+                    ),
+                    SizedBox(height: 30),
+                    SizedBox(
+                      width: double.infinity,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Icon(
+                             Icons.construction_rounded,
+                             color: theme.primaryColor,
+
+                          ),
+                          SizedBox(width: 10,),
+                          Text(
+                            'Tech Stack Used',
+                            textAlign: TextAlign.start,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight:  FontWeight.bold,
+                              color: Colors.black87
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height:12),
+                    GridView.count(
+                       crossAxisCount: (isMobile?1 : 4),
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 12,
+                      childAspectRatio: isMobile? 4.5:2.85,
+                      mainAxisSpacing: 12,
+                      children: [
+                        TechStackCard(
+                          iconWidget: SvgPicture.asset(
+                            'assets/icons/flutter_logo.svg',
+                          ), 
+                          title: 'FLUTTER'
+                        ),
+                        TechStackCard(
+                          iconWidget: SvgPicture.asset(
+                            'assets/icons/spring_boot_logo.svg'
+                          ), 
+                          title: 'SPRING BOOT'
+                        ),
+                        TechStackCard(
+                          iconWidget: Image.asset(
+                            'assets/icons/fl_chart_logo.png'
+                          ), 
+                          title: 'FL_CHART'
+                        ),
+                        TechStackCard(
+                          iconWidget: SvgPicture.asset(
+                            'assets/icons/postgres_logo.svg'
+                          ), 
+                          title: 'POSTGRESQL'
+                        ),
+                      ],
+                    ),
+              
+                    SizedBox(height: 40,),
+                    FinalCta(
+                      navigateToMainPage: navigateToMainPage,
+                    ),
+                  ]
+                ),
+              ),
+            ),
+          )
+        )
+      ),
+    );
+  }
+
+  
+}
+
+
+class FeatureCard extends StatelessWidget {
+
+  final IconData icon;
+  final String title;
+  final String description;
+  const FeatureCard({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.description
+  });
+  
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return PopupHoverCard(
+      child: Card(
+      
+        elevation: 2,
+        // margin:EdgeInsets.symmetric(vertical: 10),
+        color: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        shadowColor: theme.primaryColor.withValues(alpha:0.05),
+        child: Container(
+          padding: EdgeInsets.all(15),
+          child:Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color:  theme.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: theme.primaryColor,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                ],
+              ),
+              SizedBox(height:10),
+              Text(
+              description,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+              ),
+            ),
+            ],
+          )
+          
+        )
+      ),
+    );
+  }
+}
+
+
+class FinalCta extends StatelessWidget {
+  final VoidCallback navigateToMainPage;
+  const FinalCta({
+    super.key,
+    required this.navigateToMainPage
+  });
+
+
+
+
+  @override
+  Widget build(BuildContext context) {
+    
+    final theme = Theme.of(context);
+    return PopupHoverCard(
+      child: Container(
+        width: double.infinity,
+        padding:
+            const EdgeInsets.symmetric(horizontal: 28, vertical: 36),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomLeft,
+      
+            colors: [
+              theme.primaryColor,
+              theme.primaryColor.withValues(alpha: 0.5),
+              theme.primaryColor
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: theme.primaryColor.withValues(alpha: 0.25),
+              blurRadius: 30,
+              offset: const Offset(0, 16),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Text(
+              'Start watching your API in minutes',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Ready to dive into your API metrics? Sign in to unlock real-time request logs,'
+              ' track endpoint latencies, and visualize your system performance data instantly.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.85),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: ()=> navigateToMainPage(),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+              label: const Text('Continue Your Journey'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: theme.primaryColor,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 32, vertical: 18),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+class TechStackCard extends StatelessWidget {
+
+  final Widget iconWidget;
+  final String title;
+  const TechStackCard({
+    super.key,
+    required this.iconWidget,
+    required this.title,
+  });
+  
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return PopupHoverCard(
+      child: Card(
+      
+        elevation: 2,
+        // margin:EdgeInsets.symmetric(vertical: 10),
+        color: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        shadowColor: theme.primaryColor.withValues(alpha:0.05),
+        child: Container(
+          padding: EdgeInsets.all(10),
+          child:Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 24,
+                    height:24,
+                    clipBehavior: Clip.antiAlias,
+                    // padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color:  theme.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: iconWidget,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                ],
+              ),
+              SizedBox(height:10),
+             
+            ],
+          )
+          
+        )
+      ),
+    );
+  }
+}
