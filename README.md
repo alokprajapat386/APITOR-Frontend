@@ -4,6 +4,9 @@ APITOR(Frontend) A user interface designed for the project APITOR, a tool to not
 
 * **Backend Core Engine Repository:** [🔗 Click here to view the Backend Repository](https://github.com/alokprajapat386/APITOR-Backend)
 
+Want to intgrate your project key and start tracking your API, then follow this
+* **Connector Repository:** [🔗 Click here to view the APITOR Connectors Templates](https://github.com/alokprajapat386/APITOR-Connector-Templates)
+
 Core Architecture and Flow:
 1.  A Splash Screen to show while the configurations and security keys are fethed from the secure storage.
 2.  A landing page featuring the details about the APITOR like features,  tech stacks along with dynamic navigation buttons to navigate the user to dashboard or the login page accordingly.
