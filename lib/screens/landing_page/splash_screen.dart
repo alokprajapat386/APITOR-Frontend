@@ -14,7 +14,7 @@ class _SplashScreenState extends State<SplashScreen> {
     final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
 
-    bool isMobile = screenWidth <350;
+    bool isMobile = screenWidth <450;
     return Scaffold(
       body: Container(
          decoration: BoxDecoration(

@@ -156,7 +156,7 @@ class AboutUs extends StatelessWidget {
           ),
           const SizedBox(height: 20,),
           Text(
-            "Welcome Back",
+            "Welcome",
             style:Theme.of(context).textTheme.titleLarge?.copyWith(
               fontSize: 24,
               fontWeight: FontWeight.w400

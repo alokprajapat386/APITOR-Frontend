@@ -3,11 +3,13 @@ import 'package:apitor/analytics/data/periodic_analytics_dto.dart';
 import 'package:apitor/analytics/data/route_analytics_dto.dart';
 import 'package:apitor/analytics/service/metrics_analytics_service.dart';
 import 'package:apitor/components/analytics_date_filter.dart';
+import 'package:apitor/components/custom_expanded.dart';
 import 'package:apitor/screens/charts/dynamic_bar_chart.dart';
 import 'package:apitor/screens/charts/dynamic_line_chart.dart';
 import 'package:apitor/screens/dashboard/project_token_field.dart';
 import 'package:flutter/material.dart';
 import 'package:apitor/analytics/data/project_details_dto.dart';
+import 'package:intl/intl.dart';
 
 class MetricsAnalyticsPage extends StatefulWidget {
   final ProjectDetailsDTO project;
@@ -49,6 +51,8 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+      double screenWidth = MediaQuery.of(context).size.width;
+    bool isMobile = screenWidth<450;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -137,7 +141,7 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
                       const SizedBox(height: 8),
                       _buildProjectDetailRow(
                         'Created At',
-                        widget.project.createdAt.toString(),
+                        DateFormat('dd-MMM-yyyy').format(widget.project.createdAt.toLocal()),
                       ),
                     ],
                   ),
@@ -206,7 +210,7 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
                 final metricsData = snapshot.data!;
 
                 return showPeriodicAnalytics
-                    ? _buildPeriodicAnalyticsView(theme, metricsData)
+                    ? _buildPeriodicAnalyticsView(theme, metricsData, isMobile)
                     : _buildRouteAnalyticsView(theme, metricsData);
               }
 
@@ -306,7 +310,7 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
             label: Padding(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Text(
-                'Periodic Analytics',
+                'Periodic',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
@@ -316,7 +320,7 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
             label: Padding(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Text(
-                'Route Analytics',
+                'Route-wise',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
@@ -330,6 +334,7 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
   Widget _buildPeriodicAnalyticsView(
     ThemeData theme,
     MetricsAnalyticsDTO data,
+    bool isMobile
   ) {
     if (data.periodicAnalytics.isEmpty) {
       return Padding(
@@ -361,10 +366,12 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Flex(
+          direction: isMobile? Axis.vertical: Axis.horizontal,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
+            CustomExpanded(
+              isExpanded: !isMobile,
               child: ChartCard(
                 title: 'API Hits',
                 legendLabels: const ['API Hits'],
@@ -378,8 +385,9 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
                 ),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
+            const SizedBox(width: 16, height:16),
+            CustomExpanded(
+              isExpanded: !isMobile,
               child: ChartCard(
                 title: 'Unique IPs',
                 legendLabels: const ['Unique IPs'],
@@ -407,10 +415,12 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
             chartHeight: 280,
           ),
         ),
-        Row(
+        Flex(
+          direction: isMobile? Axis.vertical: Axis.horizontal,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
+            CustomExpanded(
+              isExpanded: !isMobile,
               child: ChartCard(
                 title: 'Latency (ms)',
                 legendLabels: const ['Avg', 'P50', 'P99'],
@@ -432,8 +442,9 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
                 ),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
+            const SizedBox(width: 16, height:16),
+            CustomExpanded(
+              isExpanded: !isMobile,
               child: ChartCard(
                 title: 'Payload Size (bytes)',
                 legendLabels: const ['Avg', 'Max'],

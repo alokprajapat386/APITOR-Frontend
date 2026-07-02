@@ -29,7 +29,7 @@ void showForgotPasswordDialog(BuildContext context) {
             contentPadding: const EdgeInsets.all(32.0), 
             backgroundColor: Colors.white,
             content: SizedBox(
-              width: 400, 
+              width: 350, 
               child: Form(
                 key: formKey,
                 child: Column(
@@ -53,11 +53,13 @@ void showForgotPasswordDialog(BuildContext context) {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        Text(
-                          currentStage == 1 ? 'Reset Password' : 'Verify Details',
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 24,
+                        Expanded(
+                          child: Text(
+                            currentStage == 1 ? 'Reset Password' : 'Verify Details',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 24,
+                            ),
                           ),
                         ),
                       ],

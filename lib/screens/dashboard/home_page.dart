@@ -58,7 +58,9 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final String currentRoute = GoRouterState.of(context).matchedLocation;
-    final double screenWidth = MediaQuery.of(context).size.width;
+    double screenWidth = MediaQuery.of(context).size.width;
+    bool isMobile = screenWidth<450;
+
 
     return ValueListenableBuilder(valueListenable: UserSession.instance.notifier, builder: (context, userDetails, child) {
       
@@ -140,7 +142,7 @@ class _HomePageState extends State<HomePage> {
               // Main Content
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 300),
-                left: _isDrawerOpen ? _drawerWidth : 0,
+                left: _isDrawerOpen ? (isMobile? 0: _drawerWidth) : 0,
                 right: 0,
                 top: 0,
                 bottom: 0,
@@ -153,10 +155,11 @@ class _HomePageState extends State<HomePage> {
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Container(
-
+                            
                             constraints: BoxConstraints(
-                              minWidth: 750, 
-                                  maxWidth: screenWidth * 0.6 < 750 ? 750 : screenWidth * 0.6,
+                              minWidth: isMobile?310:750, 
+                              maxWidth: isMobile?(screenWidth * 0.75 < 310 ? 310 : screenWidth * 0.75):
+                              (screenWidth * 0.6 < 750 ? 750 : screenWidth * 0.6)
                             ),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(6),
@@ -171,6 +174,14 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
+              
+              if (_isDrawerOpen && isMobile)
+                GestureDetector(
+                  onTap: _closeDrawer,
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.5), 
+                  ),
+                ),
       
               // Drawer
               AnimatedPositioned(
@@ -223,6 +234,7 @@ class _HomePageState extends State<HomePage> {
                     setState((){
                       currentRoute='/dashboard';
                     });
+                    closeDrawer();
                   },
                   child: Row(
                     children: [
@@ -340,7 +352,7 @@ class _HomePageState extends State<HomePage> {
             ),
             onTap: () {
               context.go('/dashboard/projects');
-          
+              closeDrawer();
             },
             selected: currentRoute=='/dashboard/projects',
             selectedTileColor: theme.primaryColor.withValues(alpha:0.1),
@@ -369,7 +381,7 @@ class _HomePageState extends State<HomePage> {
             ),
             onTap: () {
                context.go('/dashboard/settings');
-               
+               closeDrawer();
          
             }, 
             selected: currentRoute=='/dashboard/settings',

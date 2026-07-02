@@ -1,6 +1,7 @@
 import 'package:apitor/analytics/data/password_change_request_dto.dart';
 import 'package:apitor/analytics/data/user_update_request_dto.dart';
 import 'package:apitor/analytics/service/user_service.dart';
+import 'package:apitor/components/custom_expanded.dart';
 import 'package:apitor/screens/auth/auth_components.dart';
 import 'package:flutter/material.dart';
 
@@ -106,7 +107,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               contentPadding: const EdgeInsets.all(32.0),
               content: SizedBox(
-                width: 400,
+                width: 320,
                 child: Form(
                   key: formKey,
                   child: Column(
@@ -340,12 +341,13 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
+    double screenWidth = MediaQuery.of(context).size.width;
+    bool isMobile = screenWidth<450;
     return ValueListenableBuilder(
       valueListenable: UserSession.instance.notifier,
       builder: (context, userDetails, child) {
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -364,6 +366,16 @@ class _SettingsPageState extends State<SettingsPage> {
                         color: theme.primaryColor,
                       ),
                     ),
+                    Spacer(),
+                      IconButton(
+                        onPressed: _isSavingProfile ? null : _toggleEdit,
+                          icon: Icon(
+
+                          _isEditing ? Icons.close : Icons.edit_outlined,
+                          color: theme.primaryColor,
+                        ),
+                        tooltip: _isEditing ? 'Cancel editing' : 'Edit profile',
+                      ),
                    
                   ],
                 ),
@@ -371,10 +383,12 @@ class _SettingsPageState extends State<SettingsPage> {
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-                child: Row(
+                child: Flex(
+                  direction: isMobile? Axis.vertical: Axis.horizontal,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
+                    CustomExpanded(
+                      isExpanded: !isMobile,
                       flex: 6,
                       child: Container(
                       width: double.infinity,
@@ -399,8 +413,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Avatar + name row
                             Row(
+                              
                               children: [
                                 Container(
                                   width: 70,
@@ -413,6 +427,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
+                                  // isExpanded: !isMobile,
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
@@ -434,16 +449,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                     ],
                                   ),
                                 ),
-                                Spacer(),
-                                IconButton(
-                                  onPressed: _isSavingProfile ? null : _toggleEdit,
-                                    icon: Icon(
-        
-                                    _isEditing ? Icons.close : Icons.edit_outlined,
-                                    color: theme.primaryColor,
-                                  ),
-                                  tooltip: _isEditing ? 'Cancel editing' : 'Edit profile',
-                                ),
+                               
                               ],
                             ),
                             const SizedBox(height: 32),
@@ -522,11 +528,12 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
 
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 16, height:16),
 
-                    // Change Password Card — 40% of the row width
-                    Expanded(
+                   
+                    CustomExpanded(
                       flex: 4,
+                      isExpanded:!isMobile,
                       child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(24),

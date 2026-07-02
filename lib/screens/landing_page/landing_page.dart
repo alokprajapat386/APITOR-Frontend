@@ -118,7 +118,7 @@ class _LandingPageState extends State<LandingPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     double screenWidth = MediaQuery.of(context).size.width;
-    bool isMobile = screenWidth<350;
+    bool isMobile = screenWidth<450;
     return Scaffold(
       body: Container(
         

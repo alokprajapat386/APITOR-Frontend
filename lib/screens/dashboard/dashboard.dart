@@ -1,4 +1,5 @@
 import 'package:apitor/analytics/data/user_details_dto.dart';
+import 'package:apitor/components/custom_expanded.dart';
 import 'package:apitor/components/pop_up_card.dart';
 import 'package:apitor/routing/user_session.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +16,9 @@ class DashboardComponent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    double screenWidth = MediaQuery.of(context).size.width;
+    bool isMobile = screenWidth<450;
+
      return ValueListenableBuilder(valueListenable: UserSession.instance.notifier, builder: (context, userDetails, child) {
       final UserDetailsDTO user = userDetails;
 
@@ -45,17 +49,20 @@ class DashboardComponent extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Icon(
                             Icons.double_arrow_sharp,
                             color:theme.primaryColor
                           ),
                           SizedBox(width: 8,),
-                          Text(
-                              'Stop Guessing. Visualize Your API Performance.',
-                             style: theme.textTheme.bodyLarge?.copyWith(
-                              color: Colors.grey[600],
-                              height: 1.5,
+                          Expanded(
+                            child: Text(
+                                'Stop Guessing. Visualize Your API Performance.',
+                               style: theme.textTheme.bodyLarge?.copyWith(
+                                color: Colors.grey[600],
+                                height: 1.5,
+                              ),
                             ),
                           ),
                         ],
@@ -90,7 +97,7 @@ class DashboardComponent extends StatelessWidget {
           const SizedBox(height: 16),
             
           // Service Cards Grid
-          _buildServiceCards(context, theme),
+          _buildServiceCards(context, theme, isMobile),
           const SizedBox(height: 32),
             
           // Start Your Journey Card
@@ -102,10 +109,9 @@ class DashboardComponent extends StatelessWidget {
      });
   }
 
-  Widget _buildServiceCards(BuildContext context, ThemeData theme) {
+  Widget _buildServiceCards(BuildContext context, ThemeData theme, bool isMobile) {
 
-    // final cardWidth = width - 48; // Account for padding
-    final cardHeight = 120.0;
+    final cardHeight = isMobile? 150.0: 120.0;
 
     final services = [
       {
@@ -135,10 +141,12 @@ class DashboardComponent extends StatelessWidget {
         for (int i = 0; i < services.length; i += 2)
           Padding(
             padding: const EdgeInsets.only(bottom: 16.0),
-            child: Row(
+            child: Flex(
+              direction: isMobile? Axis.vertical: Axis.horizontal,
               children: [
-                // First Card
-                Expanded(
+                
+                CustomExpanded(
+                  isExpanded: !isMobile,
                   child: _buildServiceCard(
                     context,
                     theme,
@@ -148,10 +156,11 @@ class DashboardComponent extends StatelessWidget {
                     cardHeight,
                   ),
                 ),
-                const SizedBox(width: 16),
-                // Second Card (if exists)
+                const SizedBox(width: 16, height:16),
+                
                 if (i + 1 < services.length)
-                  Expanded(
+                  CustomExpanded(
+                    isExpanded: !isMobile,
                     child: _buildServiceCard(
                       context,
                       theme,
@@ -162,7 +171,10 @@ class DashboardComponent extends StatelessWidget {
                     ),
                   )
                 else
-                  Expanded(child: Container()),
+                  CustomExpanded(
+                    isExpanded:!isMobile,
+                    child: Container()
+                  ),
               ],
             ),
           ),

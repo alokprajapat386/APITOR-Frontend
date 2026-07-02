@@ -1,11 +1,13 @@
 import 'package:apitor/analytics/data/project_create_request_dto.dart';
 import 'package:apitor/analytics/data/project_details_dto.dart';
 import 'package:apitor/analytics/service/project_service.dart';
+import 'package:apitor/components/custom_expanded.dart';
 import 'package:apitor/components/pop_up_card.dart';
 import 'package:apitor/screens/auth/auth_components.dart';
 import 'package:apitor/screens/dashboard/project_token_field.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 class ProjectPage extends StatefulWidget {
   const ProjectPage({super.key});
@@ -32,6 +34,8 @@ class _ProjectPageState extends State<ProjectPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    double screenWidth = MediaQuery.of(context).size.width;
+    bool isMobile = screenWidth<450;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -52,6 +56,23 @@ class _ProjectPageState extends State<ProjectPage> {
                     color: theme.primaryColor,
                   ),
                 ),
+                isMobile?
+                ElevatedButton(
+                  onPressed: () {
+                    showCreateProjectDialog(context, () {
+                      _retryFetch(); 
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.primaryColor,
+
+                    foregroundColor: Colors.white,
+                  
+                    shape: CircleBorder()
+                  ),
+                   child: const Icon(Icons.add, size: 20),
+                )
+                :
                 ElevatedButton.icon(
                   onPressed: () {
                     showCreateProjectDialog(context, () {
@@ -59,17 +80,19 @@ class _ProjectPageState extends State<ProjectPage> {
                     });
                   },
                   icon: const Icon(Icons.add, size: 20),
-                  label: const Text('Create'),
+                  label:const Text('Create'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.primaryColor,
+
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile?6:20,
                       vertical: 12,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(999),
                     ),
+                    
                   ),
                 ),
               ],
@@ -164,6 +187,7 @@ class _ProjectPageState extends State<ProjectPage> {
                           theme,
                           projects[index],
                           index,
+                          isMobile
                         ),
                     ],
                   ),
@@ -186,8 +210,8 @@ class _ProjectPageState extends State<ProjectPage> {
     ThemeData theme,
     ProjectDetailsDTO project,
     int index,
+    bool isMobile
   ) {
-    final String formattedDate = project.createdAt.toString().split(' ')[0];
 
     return PopupHoverCard(
       child: Container(
@@ -212,10 +236,11 @@ class _ProjectPageState extends State<ProjectPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              Flex(
+                direction: isMobile? Axis.vertical : Axis.horizontal,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
+                  Container(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -242,16 +267,19 @@ class _ProjectPageState extends State<ProjectPage> {
                 ],
               ),
               const SizedBox(height: 16),
-              Row(
+              Flex(
+                direction: isMobile? Axis.vertical: Axis.horizontal,
                 children: [
-                  Expanded(
+                  CustomExpanded(
+                    isExpanded: !isMobile,
                     child: _buildTokenDetailItem(
                       theme,
                       project.projectToken,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
+                  const SizedBox(width: 12, height:12),
+                  CustomExpanded(
+                    isExpanded: !isMobile,
                     child: _buildDetailItem(
                       theme,
                       'URL',
@@ -262,18 +290,21 @@ class _ProjectPageState extends State<ProjectPage> {
                 ],
               ),
               const SizedBox(height: 12),
-              Row(
+              Flex(
+                  direction: isMobile? Axis.vertical: Axis.horizontal,
                 children: [
-                  Expanded(
+                  CustomExpanded(
+                    isExpanded: !isMobile,
                     child: _buildDetailItem(
                       theme,
                       'Created At',
-                      formattedDate,
+                      DateFormat('dd-MMM-yyyy').format(project.createdAt.toLocal()),
                       Icons.calendar_today,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
+                  const SizedBox(width: 12, height:12),
+                  CustomExpanded(
+                    isExpanded: !isMobile,
                     child: _buildDetailItem(
                       theme,
                       'Status',
@@ -441,6 +472,8 @@ class _ProjectPageState extends State<ProjectPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
+              backgroundColor: Colors.white,
+              
               contentPadding: const EdgeInsets.all(32.0), 
               content: SizedBox(
                 child: Form(
@@ -455,7 +488,7 @@ class _ProjectPageState extends State<ProjectPage> {
                             width: 45,
                             height: 45,
                             decoration: BoxDecoration(
-                              color: theme.primaryColor.withValues(alpha: 0.1),
+                              color: theme.primaryColor.withValues(alpha:0.05),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
@@ -465,11 +498,13 @@ class _ProjectPageState extends State<ProjectPage> {
                             ),
                           ),
                           const SizedBox(width: 16),
-                          Text(
-                            'New Project',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 24,
+                          Expanded(
+                            child: Text(
+                              'New Project',
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 24,
+                              ),
                             ),
                           ),
                         ],

@@ -29,7 +29,7 @@ class GoogleAuthService {
         .onError(_handleAuthenticationError);
 
     // tries silent/auto sign-in if the user has a valid session already
-    unawaited(_signIn.attemptLightweightAuthentication());
+    // unawaited(_signIn.attemptLightweightAuthentication());
   }
 
   static void _handleAuthenticationEvent(GoogleSignInAuthenticationEvent event) {

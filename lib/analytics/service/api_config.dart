@@ -40,11 +40,14 @@ class ApiConfiguration{
       final Uri base = Uri.parse("/analytics/$projectId");
       final Map<String, String> queryParams = {};
       if (startTime != null)  queryParams['startTime'] = startTime.toUtc().toIso8601String();
-      if (endTime != null)  queryParams['endTime'] = endTime.toUtc().toIso8601String();
+      if (endTime != null) { 
+        DateTime effectiveEndTime=endTime.add(const Duration(days: 1));
+        queryParams['endTime'] = effectiveEndTime.toUtc().toIso8601String();
+      }
       if (timezone!=null)  queryParams['timezone'] = timezone;
       if (anlyticsTimeGranularity != null)  queryParams['analyticsTimePeriod'] = anlyticsTimeGranularity;
       final Uri uri= base.replace(queryParameters: queryParams);
-
+    
       return uri.toString();
   }
 
