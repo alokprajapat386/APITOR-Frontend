@@ -6,6 +6,7 @@ import 'package:apitor/analytics/service/auth_service.dart';
 import 'package:apitor/analytics/service/google_auth_service.dart';
 import 'package:apitor/analytics/service/storage/jwt_token_storage_service.dart';
 import 'package:apitor/analytics/service/storage/user_profile_storage_service.dart';
+import 'package:apitor/components/custom_snack_bar.dart';
 import 'package:apitor/components/google_sign_in_button.dart';
 import 'package:apitor/routing/user_session.dart';
 import 'package:apitor/screens/auth/forgot_password_dialog.dart';
@@ -35,6 +36,13 @@ class _LoginMainState extends State<LoginMain> {
     super.initState();
     identifierController = TextEditingController();
     passwordController = TextEditingController();
+    GoogleAuthService.onLoadingChanged = (loadingState) {
+      if (mounted) {
+        setState(() {
+          _isLoading = loadingState; 
+        });
+      }
+    };
   }
 
   bool _isLoading=false;
@@ -43,6 +51,7 @@ class _LoginMainState extends State<LoginMain> {
   void dispose() {
     identifierController.dispose();
     passwordController.dispose();
+    GoogleAuthService.onLoadingChanged = null;
     super.dispose();
   }
 
@@ -65,18 +74,18 @@ class _LoginMainState extends State<LoginMain> {
 
       if(mounted){
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Signed In successfully!')),
+          CustomSnackBar.success('Signed In Successfully', 'Welcome back! Continue monitoring your APIs')
         );
         context.go('/dashboard');
       }
 
       if(!mounted) return;
-    }catch(error){
-        if(!mounted) return;
-         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to LogIn!')),
-        );
-        
+    }catch(e){
+      if(!mounted) return;
+    
+      ScaffoldMessenger.of(context).showSnackBar(
+        CustomSnackBar.error('Failed To Sign In', e)
+      );
     }finally{
       setState((){
         _isLoading=false;
@@ -89,16 +98,18 @@ class _LoginMainState extends State<LoginMain> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth= MediaQuery.of(context).size.width;
+    bool isMobile = screenWidth<450;
 
     return Padding(
-      padding: const EdgeInsets.all(40.0),
+      padding:  EdgeInsets.all(isMobile? 16:40.0),
       child: Form(
         key: _formKey,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Login Icon and Heading
+            
             Row(
               children: [
                 Container(
@@ -162,7 +173,6 @@ class _LoginMainState extends State<LoginMain> {
               },
             ),
             const SizedBox(height: 12),
-            // Forgot Password Link
             Align(
               alignment: Alignment.centerRight,
               child: InkWell(
@@ -243,7 +253,7 @@ class _LoginMainState extends State<LoginMain> {
               onPressed: GoogleAuthService.signInWithGoogle,
               child: const Text('Sign in with Google'),
             ),
-            // Sign Up Link
+            
             SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,

@@ -2,6 +2,7 @@ import 'package:apitor/analytics/data/reset_password_request_dto.dart';
 import 'package:apitor/analytics/data/reset_request_verification_dto.dart';
 import 'package:apitor/analytics/service/auth_service.dart';
 import 'package:apitor/analytics/service/storage/password_reset_token_storage.dart';
+import 'package:apitor/components/custom_snack_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:apitor/screens/auth/auth_components.dart';
 
@@ -19,6 +20,8 @@ void showForgotPasswordDialog(BuildContext context) {
     barrierDismissible: false, 
     builder: (BuildContext context) {
       final theme = Theme.of(context);
+      final screenWidth= MediaQuery.of(context).size.width;
+      bool isMobile = screenWidth<450;
 
       return StatefulBuilder(
         builder: (context, setDialogState) {
@@ -26,7 +29,7 @@ void showForgotPasswordDialog(BuildContext context) {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            contentPadding: const EdgeInsets.all(32.0), 
+            contentPadding:  EdgeInsets.all(isMobile?16:32.0), 
             backgroundColor: Colors.white,
             content: SizedBox(
               width: 350, 
@@ -36,7 +39,7 @@ void showForgotPasswordDialog(BuildContext context) {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // --- Header Setup ---
+                    
                     Row(
                       children: [
                         Container(
@@ -66,7 +69,7 @@ void showForgotPasswordDialog(BuildContext context) {
                     ),
                     const SizedBox(height: 32),
 
-                    // --- STAGE 1 UI FIELDS ---
+                    
                     if (currentStage == 1) ...[
                       AuthFormField(
                         field: 'Username / Email',
@@ -82,7 +85,7 @@ void showForgotPasswordDialog(BuildContext context) {
                       ),
                     ],
 
-                    // --- STAGE 2 UI FIELDS ---
+                    
                     if (currentStage == 2) ...[
                       AuthFormField(
                         field: '6-Digit OTP',
@@ -119,7 +122,7 @@ void showForgotPasswordDialog(BuildContext context) {
                     ],
                     const SizedBox(height: 32),
 
-                    // --- PRIMARY ACTION BUTTON (Submit / Get OTP) ---
+
                     SizedBox(
                       width: double.infinity,
                       height: 40,
@@ -139,38 +142,37 @@ void showForgotPasswordDialog(BuildContext context) {
                                   setDialogState(() { isSubmitting = true; });
 
                                   try {
-                                    // ---- EXECUTE STAGE 1 ----
+                                    
                                     if (currentStage == 1) {
                                       ResetPasswordRequestDTO request =ResetPasswordRequestDTO(identifier: identifierController.text);
                                       final response = await AuthService.generatePasswordResetToken(request);
                                       PasswordResetTokenStorageService.saveTempToken(response.token);
                                       if(!context.mounted) return;
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('OTP sent successfully! Valid for 5 minutes'),
-                                        )
+                                        CustomSnackBar.success('OTP Sent Successfully!', 'Valid for 5 minutes only.')
                                       );
                                       setDialogState((){
                                             currentStage = 2;
                                       });
                                       
                                     } 
-                                    // ---- EXECUTE STAGE 2 ----
+
                                     else if (currentStage == 2) {
                                        ResetRequestVerificationDTO request = ResetRequestVerificationDTO(otp: otpController.text, token: PasswordResetTokenStorageService.getTempToken() ?? (() => throw Exception("Reset token not available!"))(), newPassword: passwordController.text);
                                        await AuthService.verifyPasswordResetToken(request);
                                        if(!context.mounted) return;
                                        ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Password reset successfully!')),
+                                         CustomSnackBar.success('Password Reset Successfully!', 'Login to continue')
                                        );
                                        if(context.mounted) Navigator.of(context).pop();
                                     }
                                     
                                   } catch (e) {
+                                    Navigator.pop(context);
                                     if(!context.mounted) return;
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Something went wrong! : ${e.toString()}')),
-                                       );
+                                        CustomSnackBar.error((currentStage==1? 'Failed To Get OTP': 'Failed To Verify OTP'), e)  
+                                      );
                                   } finally {
                                     setDialogState(() { isSubmitting = false; });
                                   }
@@ -193,7 +195,6 @@ void showForgotPasswordDialog(BuildContext context) {
                     ),
                     const SizedBox(height: 12),
 
-                    // --- CANCEL BUTTON ---
                     SizedBox(
                       width: double.infinity,
                       height: 40,

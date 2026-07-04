@@ -1,6 +1,7 @@
 import 'package:apitor/analytics/data/user_details_dto.dart';
 import 'package:apitor/analytics/service/storage/jwt_token_storage_service.dart';
 import 'package:apitor/analytics/service/storage/user_profile_storage_service.dart';
+import 'package:apitor/components/custom_snack_bar.dart';
 import 'package:apitor/components/pop_up_card.dart';
 import 'package:apitor/routing/user_session.dart';
 import 'package:flutter/material.dart';
@@ -158,7 +159,7 @@ class _HomePageState extends State<HomePage> {
                             
                             constraints: BoxConstraints(
                               minWidth: isMobile?310:750, 
-                              maxWidth: isMobile?(screenWidth * 0.75 < 310 ? 310 : screenWidth * 0.75):
+                              maxWidth: isMobile?(screenWidth * 0.9 < 310 ? 310 : screenWidth * 0.9):
                               (screenWidth * 0.6 < 750 ? 750 : screenWidth * 0.6)
                             ),
                             decoration: BoxDecoration(
@@ -406,7 +407,11 @@ class _HomePageState extends State<HomePage> {
             onTap: () {
               JwtTokenStorage.clearToken();
               UserProfileStorageService.clearProfile();
-              context.go('/auth/login');
+              UserSession.instance.setUser(UserDetailsDTO.defaultProfile);
+              context.go('/');
+              ScaffoldMessenger.of(context).showSnackBar(
+                CustomSnackBar.success('Signed Out Successfully', 'Safely cleared all the session details')
+              );
 
               // closeDrawer();
             },

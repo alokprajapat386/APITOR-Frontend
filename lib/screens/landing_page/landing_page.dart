@@ -1,8 +1,11 @@
 import 'dart:convert';
 
-import 'package:apitor/analytics/service/storage/jwt_token_storage_service.dart';
+import 'package:apitor/analytics/data/user_details_dto.dart';
+import 'package:apitor/analytics/service/auth_service.dart';
 import 'package:apitor/analytics/service/storage/user_profile_storage_service.dart';
+import 'package:apitor/components/custom_expanded.dart';
 import 'package:apitor/components/pop_up_card.dart';
+import 'package:apitor/routing/user_session.dart';
 import 'package:apitor/screens/charts/dynamic_bar_chart.dart';
 import 'package:apitor/screens/charts/dynamic_line_chart.dart';
 import 'package:apitor/screens/dashboard/metrics_analytics.dart';
@@ -10,7 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
-import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -49,12 +51,14 @@ class _LandingPageState extends State<LandingPage> {
           dataKeys: ['Avg', 'P50', 'P99'],
           lineColors:  [green, orange, red],
           xAxisKey: 'time',
-          chartHeight: 240,
+          chartHeight: 200,
         ),
         backgroundColor: Colors.transparent,
       
       ),
     );
+
+    bool isLoading=false;
 
     final Widget httpMethodCard=PopupHoverCard(
       child: ChartCard(
@@ -86,32 +90,32 @@ class _LandingPageState extends State<LandingPage> {
 
 
   Future<void> navigateToMainPage() async {
-    final token = await JwtTokenStorage.getToken();
-
-
-    if(token==null || token.isEmpty){
+    setState(() {
+      isLoading = true;
+    });
+    try{
+      bool isLoggedin = await AuthService.isLoggedin();
+      if(isLoggedin){
+        final userProfile = await UserProfileStorageService.fetchProfile();
+        UserSession.instance.setUser(userProfile ?? UserDetailsDTO.defaultProfile);
+        if(!mounted) return;
+        context.go('/dashboard');
+      }else{
         if(!mounted) return;
         context.go('/auth/login');
-    }else{
-        try{
-          if(!JwtDecoder.isExpired(token) && mounted){
-            context.go('/dashboard');
-          }else{
-            JwtTokenStorage.clearToken();
-            UserProfileStorageService.clearProfile();
-            if(mounted){
-              context.go('/auth/login');
-            }
-          }
-        }catch(e){
-          JwtTokenStorage.clearToken();
-          UserProfileStorageService.clearProfile();
-          if(mounted){
-              context.go('/auth/login');
-          }
-        }
+      }
+    }catch(e){
+      if(!mounted) return;
+      context.go('/auth/login');
+    } finally{
+      if(mounted){
+        setState((){
+          isLoading=false;
+        });
+      }
     }
-
+   
+    
   }
 
   @override
@@ -138,7 +142,7 @@ class _LandingPageState extends State<LandingPage> {
         ),
         child:SingleChildScrollView(
           scrollDirection: Axis.vertical,
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 80),
+            padding: EdgeInsets.symmetric(horizontal: isMobile?8:16, vertical: 80),
           
           child: Center(
           
@@ -146,8 +150,8 @@ class _LandingPageState extends State<LandingPage> {
               scrollDirection: Axis.horizontal,
               child: Container(
                 constraints: BoxConstraints(
-                  minWidth: isMobile?300:750, 
-                  maxWidth: isMobile?(screenWidth * 0.75 < 300 ? 300 : screenWidth * 0.75):
+                  minWidth: isMobile?310:750, 
+                  maxWidth: isMobile?(screenWidth * 0.9 < 310 ? 310 : screenWidth * 0.9):
                   (screenWidth * 0.6 < 750 ? 750 : screenWidth * 0.6)
                 ),
                 
@@ -172,7 +176,7 @@ class _LandingPageState extends State<LandingPage> {
                               size: 16, color: theme.primaryColor),
                           const SizedBox(width: 8),
                           Text(
-                            'Apitor ·  API Analytics Tool',
+                            'Apitor · API Analytics Tool',
                             style: theme.textTheme.labelMedium?.copyWith(
                               color: theme.primaryColor,
                               fontWeight: FontWeight.w600,
@@ -185,7 +189,7 @@ class _LandingPageState extends State<LandingPage> {
                     ),
                     SizedBox(height:32),
                     Text(
-                      'Know Exactly How Your\nAPI Behaves',
+                      'Watch How Your API Performs In Real Time',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.displayLarge?.copyWith(
                         fontWeight: FontWeight.w800,
@@ -194,9 +198,10 @@ class _LandingPageState extends State<LandingPage> {
                        
                       ),
                     ),
+                    SizedBox(height:20),
                     Text(
-                      'Track request hits, unique visitors, latency, and method '
-                      'frequency for every endpoint \n— then plan your next move '
+                      'Track request hits, unique visitors, latency, and '
+                      'more — then plan your next move '
                       'with data instead of guesswork.',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyLarge?.copyWith(
@@ -211,9 +216,20 @@ class _LandingPageState extends State<LandingPage> {
                       children: [
                         ElevatedButton.icon(
                           onPressed: ()=>navigateToMainPage(),
-                          icon: const Icon(Icons.rocket_launch_outlined,
-                              size: 20),
-                          label: const Text('Continue Your API Journey'),
+                          icon: !isLoading?
+                            const Icon(
+                              Icons.rocket_launch_outlined,
+                              size: 20
+                            ):
+                            SizedBox(
+                              width: 20,
+                              height:20,
+                              child: CircularProgressIndicator(
+                                color:Colors.white
+                              ),
+                            )
+                              ,
+                          label: const Text('Launch Workspace'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: theme.primaryColor,
                             foregroundColor: Colors.white,
@@ -239,57 +255,56 @@ class _LandingPageState extends State<LandingPage> {
                             final Uri url = Uri.parse(githubUrl ?? 'https://github.com/repository-name/');
                             if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
                                if (!context.mounted) return;
-              
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext dialogContext) {
-                              final theme = Theme.of(dialogContext);
-                              
-                              return Dialog(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(20.0),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min, 
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 24,
-                                        backgroundColor: Colors.red.withValues(alpha: 0.1),
-                                        child: const Icon(Icons.link_off_rounded, color: Colors.red, size: 28),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      const Text(
-                                        'Could Not Launch Link',
-                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      
-                                      Text(
-                                        'We were unable to open the GitHub repository link. Please verify if a browser is installed on your device or try again later.',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(color: theme.hintColor, fontSize: 13, height: 1.4),
-                                      ),
-                                      const SizedBox(height: 20),
-                                      
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: theme.primaryColor,
-                                            foregroundColor: Colors.white,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                            padding: const EdgeInsets.symmetric(vertical: 12),
-                                          ),
-                                          onPressed: () => Navigator.pop(dialogContext), 
-                                          child: const Text('Dismiss', style: TextStyle(fontWeight: FontWeight.bold)),
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext dialogContext) {
+                                    final theme = Theme.of(dialogContext);
+                                    
+                                    return Dialog(
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(20.0),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min, 
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 24,
+                                              backgroundColor: Colors.red.withValues(alpha: 0.1),
+                                              child: const Icon(Icons.link_off_rounded, color: Colors.red, size: 28),
+                                            ),
+                                            const SizedBox(height: 16),
+                                            const Text(
+                                              'Could Not Launch Link',
+                                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                            ),
+                                            const SizedBox(height: 10),
+                                            
+                                            Text(
+                                              'We were unable to open the GitHub repository link. Please verify if a browser is installed on your device or try again later.',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(color: theme.hintColor, fontSize: 13, height: 1.4),
+                                            ),
+                                            const SizedBox(height: 20),
+                                            
+                                            SizedBox(
+                                              width: double.infinity,
+                                              child: ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: theme.primaryColor,
+                                                  foregroundColor: Colors.white,
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                                ),
+                                                onPressed: () => Navigator.pop(dialogContext), 
+                                                child: const Text('Dismiss', style: TextStyle(fontWeight: FontWeight.bold)),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }
-                          );
+                                    );
+                                  }
+                                );
                             }
                         
                           },
@@ -297,7 +312,7 @@ class _LandingPageState extends State<LandingPage> {
                                FontAwesomeIcons.github,
                               size: 20),
                               
-                          label: const Text('View Repository On Github'),
+                          label: const Text('View Repo On Github'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.black.withValues(alpha:0.7),
                             foregroundColor: Colors.white,
@@ -314,7 +329,7 @@ class _LandingPageState extends State<LandingPage> {
                     ),
                     SizedBox(height: 40,),
                     Text(
-                      'Visualize How Your API Performs',
+                      'Analyse How Your API Performs',
                       textAlign: TextAlign.start,
                       style: theme.textTheme.displaySmall?.copyWith(
                         fontWeight: FontWeight.w600,
@@ -328,9 +343,15 @@ class _LandingPageState extends State<LandingPage> {
                       direction: (isMobile? Axis.vertical:Axis.horizontal),
                       
                       children: [
-                        isMobile? latencyCard : Expanded(flex: 1, child: latencyCard),
-                        isMobile? SizedBox(height:12): SizedBox(width: 12),
-                        isMobile? httpMethodCard : Expanded(flex: 1, child: httpMethodCard),
+                        CustomExpanded(
+                          isExpanded: !isMobile,
+                          child: latencyCard
+                        ),
+                        SizedBox(height:12, width:12),
+                        CustomExpanded(
+                          isExpanded: !isMobile,
+                          child: httpMethodCard
+                        )
                       ],
                     ),
                     SizedBox(height: 30,),
@@ -359,44 +380,72 @@ class _LandingPageState extends State<LandingPage> {
                     ),
               
                     SizedBox(height:12),
-                    GridView.count(
-                      crossAxisCount: (isMobile? 1: 2),
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 12,
-                      childAspectRatio: isMobile? 1.65:2.4,
-                      mainAxisSpacing: 12,
+                    Flex(
+                      direction: isMobile? Axis.vertical: Axis.horizontal,
                       children: [
-                        FeatureCard(
-                          icon: Icons.speed_rounded,
-                          title: 'Track Request Latency',
-                          description: 'Just not average but also see the distributions  of latency P50 and P99 to have a more accurate insights',
+                        CustomExpanded(
+                          isExpanded: !isMobile,
+                          child: FeatureCard(
+                            icon: Icons.speed_rounded,
+                            title: 'Track Request Latency',
+                            description: 'Go beyond average. Monitor real-time P50 and P99 latency percentiles to capture distribution of slow requests. ',
+                          ),
                         ),
-                        FeatureCard(
-                          icon: Icons.bar_chart_outlined,
-                          title: 'Chart Based Visualizations',
-                          description: 'Don\'t just read anymore, visualize the API metrics with beautiful line and bar charts with predictable color scheme',
+                        SizedBox(width: 12,height:12),
+                        CustomExpanded(
+                          isExpanded: !isMobile,
+                          child: FeatureCard(
+                            icon: Icons.bar_chart_outlined,
+                            title: 'Visual Anlytics Board',
+                            description: 'Transform numbers into insights. Track real-time API trends with clean charts engineered for readabiltiy.',
+                          ),
                         ),
-                        FeatureCard(
-                          icon: Icons.admin_panel_settings_outlined,
-                          title: 'Isolation and Security',
-                          description: 'Your data is strictly yours. Built with user isolation  ensuring that no user can ever intercept or view other accounts\' telemetry or profile details',
+                      ],
+                    ),
+                    SizedBox(height:12),
+                    Flex(
+                      direction: isMobile? Axis.vertical: Axis.horizontal,
+                      children: [
+                        CustomExpanded(
+                          isExpanded: !isMobile,
+                          child: FeatureCard(
+                            icon: Icons.admin_panel_settings_outlined,
+                            title: 'Data Isolation',
+                            description: 'Your data is strictly yours. Built with user isolation ensuring that no one can ever intercept or view other accounts\' details.',
+                          ),
                         ),
-                        FeatureCard(
-                          icon: Icons.key_outlined,
-                          title: 'Google OAuth and JWT Security',
-                          description: 'Experience smooth onboarding with secure Google Sign-In, coupled with JWT authentication to keep every API handshake light and verified.',
+                        SizedBox(width: 12, height:12),
+                        CustomExpanded(
+                          isExpanded: !isMobile,
+                          child: FeatureCard(
+                            icon: Icons.key_outlined,
+                            title: 'Secure Authenticaiton',
+                            description: 'Experience smooth onboarding with secure Google Sign-In, coupled with JWT authentication to keep every API handshake light and verified.',
+                          ),
                         ),
-                        FeatureCard(
-                          icon: Icons.analytics_outlined,
-                          title: 'Detect Endpoint Bottlenecks',
-                          description: 'Analyze real-time request volume streams alongside route-level tracking and latency distributions to see the bottlenecks.',
+                      ],
+                    ),
+                    SizedBox(height:12),
+                    Flex(
+                      direction:isMobile? Axis.vertical: Axis.horizontal,
+                      children: [
+                        CustomExpanded(
+                          isExpanded:!isMobile,
+                          child: FeatureCard(
+                            icon: Icons.analytics_outlined,
+                            title: 'Identify Bottlenecks',
+                            description: 'Analyze real-time request volume streams alongside route-level tracking and latency distributions to see your API performance.',
+                          ),
                         ),
-                        FeatureCard(
-                          icon: Icons.storage_outlined,
-                          title: 'Optimized Database Scheme design',
-                          description: 'All your request metrics are safely backed by a highly optimized PostgreSQL database , built for indexing fast time-series telemetry data.',
-                        )
+                        SizedBox(width:12, height:12),
+                        CustomExpanded(
+                          isExpanded: !isMobile,
+                          child: FeatureCard(
+                            icon: Icons.storage_outlined,
+                            title: 'Optimized Storage',
+                            description: 'A secure and optimized PostGreSQL schema deisgn for fast time series telemetry indexing and optimized queries for telemetry analysis.',
+                          ),
+                        ),
                       ],
                     ),
                     SizedBox(height: 30),
@@ -424,19 +473,17 @@ class _LandingPageState extends State<LandingPage> {
                       ),
                     ),
                     SizedBox(height:12),
-                    GridView.count(
-                       crossAxisCount: (isMobile?1 : 4),
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 12,
-                      childAspectRatio: isMobile? 4.5:2.85,
-                      mainAxisSpacing: 12,
+                    Wrap(
+                     alignment: WrapAlignment.center,
+                     spacing: isMobile?16: 40,
+                     runSpacing: 16,
+
                       children: [
                         TechStackCard(
                           iconWidget: SvgPicture.asset(
                             'assets/icons/flutter_logo.svg',
                           ), 
-                          title: 'FLUTTER'
+                          title: 'FLUTTER '
                         ),
                         TechStackCard(
                           iconWidget: SvgPicture.asset(
@@ -448,7 +495,7 @@ class _LandingPageState extends State<LandingPage> {
                           iconWidget: Image.asset(
                             'assets/icons/fl_chart_logo.png'
                           ), 
-                          title: 'FL_CHART'
+                          title: 'FL CHART'
                         ),
                         TechStackCard(
                           iconWidget: SvgPicture.asset(
@@ -504,9 +551,10 @@ class FeatureCard extends StatelessWidget {
         ),
         shadowColor: theme.primaryColor.withValues(alpha:0.05),
         child: Container(
+          width: double.infinity,
           padding: EdgeInsets.all(15),
           child:Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.start,
@@ -574,11 +622,11 @@ class FinalCta extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
-            end: Alignment.bottomLeft,
+            end: Alignment.bottomRight,
       
             colors: [
               theme.primaryColor,
-              theme.primaryColor.withValues(alpha: 0.5),
+              theme.primaryColor.withValues(alpha: 0.7),
               theme.primaryColor
             ],
           ),
@@ -602,8 +650,7 @@ class FinalCta extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Ready to dive into your API metrics? Sign in to unlock real-time request logs,'
-              ' track endpoint latencies, and visualize your system performance data instantly.',
+              'Ready to dive into your API metrics? Sign in to track endpoint latencies, and analyse your system performance data instantly.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: Colors.white.withValues(alpha: 0.85),
@@ -652,47 +699,39 @@ class TechStackCard extends StatelessWidget {
       child: Card(
       
         elevation: 2,
+        
         // margin:EdgeInsets.symmetric(vertical: 10),
         color: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
         shadowColor: theme.primaryColor.withValues(alpha:0.05),
-        child: Container(
-          padding: EdgeInsets.all(10),
-          child:Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            spacing: 10,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 24,
-                    height:24,
-                    clipBehavior: Clip.antiAlias,
-                    // padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color:  theme.primaryColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    child: iconWidget,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+              Container(
+                width: 24,
+                height:24,
+                clipBehavior: Clip.antiAlias,
+                // padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color:  theme.primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(5),
                 ),
-                ],
+                child: iconWidget,
               ),
-              SizedBox(height:10),
-             
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+                                ),
             ],
-          )
-          
+          ),
         )
       ),
     );

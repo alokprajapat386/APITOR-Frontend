@@ -13,7 +13,7 @@ class MetricsAnalyticsService {
       if(response.statusCode >= 200 && response.statusCode<300){
       return MetricsAnalyticsDTO.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception("Failed to fetch Analytics: ${response.body}");
+     throw HttpException(statusCode: response.statusCode, message: jsonDecode(response.body)['message']);
     }
   }
 }

@@ -34,10 +34,12 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Center(
           child:Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Flex(
                 direction: isMobile? Axis.vertical: Axis.horizontal,
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
                     width: 60,
@@ -104,7 +106,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
 
               Text(
-                "APITOR :Your Personal API Telemetry Engine.",
+                "APITOR: API Performance Inspector and Telemetry Overview Reporter",
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: Colors.black.withValues(alpha: 0.7),
                   fontSize: 24,
@@ -112,7 +114,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 )
               ),
               Text(
-                "Loading the system configurations from secure storage, safely retrieving keys... Just a minute",
+                "Preparing your workspace. Retrieving secure session tokens and backend configurations...",
               
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: Colors.grey[600],

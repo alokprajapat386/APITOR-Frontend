@@ -1,5 +1,6 @@
 import 'package:apitor/analytics/service/api_config.dart';
 import 'package:apitor/analytics/service/google_auth_service.dart';
+import 'package:apitor/routing/global_scaffold_messenger_key.dart';
 import 'package:apitor/screens/landing_page/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:apitor/routing/router.dart';
@@ -50,10 +51,10 @@ class _MyAppState extends State<MyApp> {
     ):
     MaterialApp.router(
       title: 'APITOR',
-      
+      scaffoldMessengerKey : scaffoldMessengerKey,
       theme: ThemeData(
       
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 63, 81, 181)),
       ),
       routerConfig: router,
     );

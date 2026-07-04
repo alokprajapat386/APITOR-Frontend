@@ -1,7 +1,10 @@
 import 'package:apitor/analytics/data/password_change_request_dto.dart';
 import 'package:apitor/analytics/data/user_update_request_dto.dart';
+import 'package:apitor/analytics/service/storage/jwt_token_storage_service.dart';
+import 'package:apitor/analytics/service/storage/user_profile_storage_service.dart';
 import 'package:apitor/analytics/service/user_service.dart';
 import 'package:apitor/components/custom_expanded.dart';
+import 'package:apitor/components/custom_snack_bar.dart';
 import 'package:apitor/screens/auth/auth_components.dart';
 import 'package:flutter/material.dart';
 
@@ -44,7 +47,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _toggleEdit() {
     if (_isEditing) {
-      // Cancel hone par fields ko wapas current user data se reset karo
       final user = UserSession.instance.user;
       _fullNameController.text = user.fullName;
       _usernameController.text = user.username;
@@ -68,18 +70,19 @@ class _SettingsPageState extends State<SettingsPage> {
       );
 
       final response = await UserService.updateUserProfile(updatedUser);
-
-      UserSession.instance.setUser(response);
+      await UserProfileStorageService.saveProfile(response.userDetails);
+      await JwtTokenStorage.saveToken(response.token);
+      UserSession.instance.setUser(response.userDetails);
 
       if (!mounted) return;
       setState(() => _isEditing = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully!')),
+        CustomSnackBar.success('Profile Updated Successfully', '')
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update profile: $e')),
+        CustomSnackBar.error('Failed to update profile', e)
       );
     } finally {
       if (mounted) setState(() => _isSavingProfile = false);
@@ -98,6 +101,8 @@ class _SettingsPageState extends State<SettingsPage> {
       barrierDismissible: true,
       builder: (BuildContext dialogContext) {
         final theme = Theme.of(dialogContext);
+        final screenWidth= MediaQuery.of(context).size.width;
+        bool isMobile = screenWidth<450;
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -105,7 +110,8 @@ class _SettingsPageState extends State<SettingsPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              contentPadding: const EdgeInsets.all(32.0),
+              contentPadding:  EdgeInsets.all(isMobile? 10: 32.0),
+              backgroundColor: Colors.white,
               content: SizedBox(
                 width: 320,
                 child: Form(
@@ -114,7 +120,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Heading & Icon
+                      
                       Row(
                         children: [
                           Container(
@@ -225,14 +231,14 @@ class _SettingsPageState extends State<SettingsPage> {
                                     if (dialogContext.mounted) {
                                       Navigator.of(dialogContext).pop();
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Password changed successfully!')),
-                                      );
+                                        CustomSnackBar.success('Password Changed Successfully', 'Never share your password to anyone')                                      );
                                     }
                                   } catch (e) {
                                     setDialogState(() => isSubmitting = false);
                                     if (dialogContext.mounted) {
+                                      Navigator.pop(context);
                                       ScaffoldMessenger.of(dialogContext).showSnackBar(
-                                        SnackBar(content: Text('Failed to change password: $e')),
+                                        CustomSnackBar.error('Failed to change password', e)
                                       );
                                     }
                                   }
@@ -256,16 +262,30 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       const SizedBox(height: 12),
 
-                      Center(
-                        child: InkWell(
-                          onTap: isSubmitting ? null : () => Navigator.of(dialogContext).pop(),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 40,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromARGB(255, 210, 210, 210),
+                            foregroundColor: const Color.fromARGB(255, 189, 189, 189).withValues(alpha:0.3),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            elevation: 2,
+                          ),
+                          onPressed: (){
+                            Navigator.of(context).pop();
+                          },
                           child: Text(
                             'Cancel',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.w500,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: Colors.black.withValues(alpha:0.7),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
-                          ),
+                          )
+                            
                         ),
                       ),
                     ],
@@ -326,10 +346,9 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  /// Thin horizontal divider used between profile fields.
   Widget _buildFieldDivider(ThemeData theme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Divider(
         height: 1,
         thickness: 1,
@@ -347,13 +366,13 @@ class _SettingsPageState extends State<SettingsPage> {
       valueListenable: UserSession.instance.notifier,
       builder: (context, userDetails, child) {
         return Container(
-          padding: const EdgeInsets.all(0),
+            padding:  EdgeInsets.symmetric(horizontal: (isMobile?16:24), vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.all(24.0),
+                // padding: const EdgeInsets.all(24.0),
                 color: Colors.white,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -382,7 +401,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
 
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+                padding: const EdgeInsets.symmetric(vertical: 20.0),
                 child: Flex(
                   direction: isMobile? Axis.vertical: Axis.horizontal,
                   crossAxisAlignment: CrossAxisAlignment.start,

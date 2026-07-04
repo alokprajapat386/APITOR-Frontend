@@ -52,7 +52,7 @@ class DynamicBarChart extends StatelessWidget {
             meta: meta,
             space: 8,
             child: Text(
-              value >= 1000 ? '${(value / 1000).toStringAsFixed(1)}K' : value.toInt().toString(),
+              value >= 1000 ? '${(value / 1000).toStringAsFixed(1)}K' : value.round().toString(),
               style: TextStyle(color: Colors.grey.shade600, fontSize: 11, fontWeight: FontWeight.w500),
             ),
           );
@@ -129,7 +129,7 @@ class DynamicBarChart extends StatelessWidget {
                               final String keyName = dataKeys[rodIndex];
                               final Color activeColor = barColors[rodIndex % barColors.length];
                               return BarTooltipItem(
-                                '$keyName: ${rod.toY.toInt()}',
+                                '$keyName: ${rod.toY.round()}',
                                 TextStyle(
                                   color: activeColor.withValues(alpha: 0.9),
                                   fontWeight: FontWeight.bold,
@@ -142,6 +142,7 @@ class DynamicBarChart extends StatelessWidget {
                         gridData: FlGridData(
                           show: true,
                           drawVerticalLine: false,
+                          horizontalInterval: sideTitleInterval,
                           getDrawingHorizontalLine: (value) => FlLine(
                             color: Colors.grey.shade100,
                             strokeWidth: 1,

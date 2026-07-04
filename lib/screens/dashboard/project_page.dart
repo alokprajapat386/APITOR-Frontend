@@ -1,13 +1,18 @@
+import 'dart:convert';
+
 import 'package:apitor/analytics/data/project_create_request_dto.dart';
 import 'package:apitor/analytics/data/project_details_dto.dart';
 import 'package:apitor/analytics/service/project_service.dart';
 import 'package:apitor/components/custom_expanded.dart';
+import 'package:apitor/components/custom_snack_bar.dart';
 import 'package:apitor/components/pop_up_card.dart';
 import 'package:apitor/screens/auth/auth_components.dart';
-import 'package:apitor/screens/dashboard/project_token_field.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProjectPage extends StatefulWidget {
   const ProjectPage({super.key});
@@ -38,12 +43,13 @@ class _ProjectPageState extends State<ProjectPage> {
     bool isMobile = screenWidth<450;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+        padding:  EdgeInsets.symmetric(horizontal: (isMobile?16:24), vertical: 16),
+      
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(24.0),
+            // padding: const EdgeInsets.all(24.0),
             color: Colors.white,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -86,7 +92,7 @@ class _ProjectPageState extends State<ProjectPage> {
 
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(
-                      horizontal: isMobile?6:20,
+                      horizontal: 20,
                       vertical: 12,
                     ),
                     shape: RoundedRectangleBorder(
@@ -112,10 +118,15 @@ class _ProjectPageState extends State<ProjectPage> {
               }
 
               if (snapshot.hasError) {
-                return Padding(
+                ScaffoldMessenger.of(context).showSnackBar(
+                  CustomSnackBar.error('Failed To Load Projects',snapshot.error ?? Exception("Something went wrong"))
+                );
+                return Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const Icon(Icons.cloud_off, color: Colors.red, size: 64),
                       const SizedBox(height: 16),
@@ -125,7 +136,8 @@ class _ProjectPageState extends State<ProjectPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        snapshot.error.toString(),
+                        'Something went wrong, ${snapshot.error.toString().contains('TimeoutException')?
+                        'Connection Timeout, try again later' : ''}',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: Colors.grey[600],
@@ -145,42 +157,74 @@ class _ProjectPageState extends State<ProjectPage> {
                 final projects = snapshot.data!;
 
                 if (projects.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.folder_open_outlined,
-                          size: 80,
-                          color: theme.primaryColor.withValues(alpha: 0.3),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No projects yet',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: Colors.grey[600],
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.folder_open_outlined,
+                            size: 80,
+                            color: theme.primaryColor.withValues(alpha: 0.3),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Create your first project to get started',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[500],
+                          const SizedBox(height: 16),
+                          Text(
+                            'No projects yet',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              color: Colors.grey[600],
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Text(
+                            'Create your first project to get started',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }
-
+           
                 return Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24.0,
+                    // horizontal: 24.0,
                     vertical: 20.0,
                   ),
                   child: Column(
                     children: [
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          final String configString = await rootBundle.loadString('assets/config.json');
+                          final Map<String, dynamic> configJson = jsonDecode(configString);
+                          final String? githubUrl = configJson['GITHUB_APC_LINK'];
+
+                          final Uri url = Uri.parse(githubUrl ?? 'https://github.com/repository-name/');
+                          if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                              if (!context.mounted) return;
+                          }
+                        },
+                        icon: const FaIcon(
+                              FontAwesomeIcons.github,
+                            size: 20),
+                            
+                        label: const Text('View how to use project token'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 0, 0, 0).withValues(alpha:0.5),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 32, vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                        ),
+                      ),
+                      SizedBox(height:30),
                       for (var index = 0; index < projects.length; index++)
                         _buildProjectCard(
                           context,
@@ -232,7 +276,7 @@ class _ProjectPageState extends State<ProjectPage> {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding:  EdgeInsets.all(isMobile? 10.0 :20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -573,15 +617,15 @@ class _ProjectPageState extends State<ProjectPage> {
                                       if (context.mounted) {
                                         Navigator.of(context).pop(); 
                                         onProjectCreated();
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Project created successfully!')),
-                                        );
+                                     
                                       }
                                     } catch (e) {
+                                    
                                       if(!context.mounted) return;
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Failed to create Project')),
-                                        );
+                                      Navigator.pop(context);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        CustomSnackBar.error('Failed To Create Project', e),
+                                      );
                                     } finally {
                                       setDialogState(() {
                                         isSubmitting = false;
@@ -609,7 +653,7 @@ class _ProjectPageState extends State<ProjectPage> {
                       const SizedBox(height: 12),
                       
                     
-                     SizedBox(
+                      SizedBox(
                         width: double.infinity,
                         height: 40,
                         child: ElevatedButton(
@@ -646,3 +690,55 @@ class _ProjectPageState extends State<ProjectPage> {
     );
   }
 }
+
+
+class ProjectTokenField extends StatelessWidget {
+  final String token;
+  final TextStyle? style;
+
+  const ProjectTokenField({
+    super.key,
+    required this.token,
+    this.style,
+  });
+
+  void _copyToken(BuildContext context) {
+    Clipboard.setData(ClipboardData(text: token));
+    ScaffoldMessenger.of(context).showSnackBar(
+       CustomSnackBar.success('Text copied to clipboard','')
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyle = style ??
+        const TextStyle(
+          color: Colors.black87,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        );
+
+    return Row(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Text(
+              token,
+              style: textStyle,
+            ),
+          ),
+        ),
+        IconButton(
+          onPressed: () => _copyToken(context),
+          icon: const Icon(Icons.copy, size: 14),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          tooltip: 'Copy token',
+          visualDensity: VisualDensity.compact,
+        ),
+      ],
+    );
+  }
+}
+

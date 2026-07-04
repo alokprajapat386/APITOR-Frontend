@@ -16,7 +16,7 @@ class GoogleSignInButtonWeb extends StatelessWidget {
           shape: web.GSIButtonShape.pill,
           text: web.GSIButtonText.continueWith,
           logoAlignment: web.GSIButtonLogoAlignment.left, 
-          minimumWidth: 295
+          minimumWidth: 280
         ),
         
       ),

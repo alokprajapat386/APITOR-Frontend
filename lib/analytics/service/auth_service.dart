@@ -9,6 +9,9 @@ import 'package:apitor/analytics/data/reset_password_request_dto.dart';
 import 'package:apitor/analytics/data/reset_request_verification_dto.dart';
 import 'package:apitor/analytics/service/api_client.dart';
 import 'package:apitor/analytics/service/api_config.dart';
+import 'package:apitor/analytics/service/storage/jwt_token_storage_service.dart';
+import 'package:apitor/analytics/service/storage/user_profile_storage_service.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class AuthService {
 
@@ -22,7 +25,7 @@ class AuthService {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return PasswordResetTokenResponseDTO.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Failed to generate token: ${response.body}');
+      throw HttpException(statusCode: response.statusCode, message: jsonDecode(response.body)['message']);
     }
   }
 
@@ -35,7 +38,7 @@ class AuthService {
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
     } else {
-      throw Exception('Failed to reset password: ${response.body}');
+      throw HttpException(statusCode: response.statusCode, message: jsonDecode(response.body)['message']);
     }
   }
 
@@ -45,7 +48,7 @@ class AuthService {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return LoginResponseDTO.fromJson(jsonDecode(response.body));
     } else {
-      throw Exception('Failed to login: ${response.body}');
+      throw HttpException(statusCode: response.statusCode, message: jsonDecode(response.body)['message']);
     }
   }
 
@@ -55,7 +58,26 @@ class AuthService {
     if (response.statusCode >= 200 && response.statusCode <= 300) {
       return true;
     } else {
-      throw Exception('Failed to register: ${response.body}');
+      throw HttpException(statusCode: response.statusCode, message: jsonDecode(response.body)['message']);
+    }
+  }
+
+  static Future<bool> isLoggedin() async{
+    final token = await JwtTokenStorage.getToken();
+    if(token==null || token.trim().isEmpty){
+        return false;
+    }else{
+      try{
+        if(!JwtDecoder.isExpired(token)){
+          return true;
+        }else{
+          JwtTokenStorage.clearToken();
+          UserProfileStorageService.clearProfile();
+          return false;
+        }
+      }catch(e){
+        return false;
+      }
     }
   }
 }

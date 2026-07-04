@@ -2,6 +2,7 @@ import 'package:apitor/analytics/data/register_request_dto.dart';
 import 'package:apitor/analytics/service/auth_service.dart';
 import 'package:apitor/analytics/service/google_auth_service.dart';
 import 'package:apitor/analytics/service/password_validator.dart';
+import 'package:apitor/components/custom_snack_bar.dart';
 import 'package:apitor/components/google_sign_in_button.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/foundation.dart';
@@ -44,20 +45,20 @@ class _RegisterMainState extends State<RegisterMain> {
 
       RegisterRequestDTO registerRequest = RegisterRequestDTO(username: username, fullName: fullName, email: email, password: password);
 
-      bool response = await AuthService.register(registerRequest);
+      await AuthService.register(registerRequest);
       
 
       if(mounted){
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text((response ?'Regestered successfully!, Login to Continue' : 'Failed to Register'))),
+          CustomSnackBar.success('Registered Successfully', 'Login to continue to APITOR')
         );
         
-        if(response) context.go('/auth/login');
+        context.go('/auth/login');
       }
-    }catch(error){
+    }catch(e){
         if(!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to register')),
+          CustomSnackBar.error('Failed To Register', e)
         );
         
     }finally{
@@ -74,6 +75,9 @@ class _RegisterMainState extends State<RegisterMain> {
     fullNameController = TextEditingController();
     emailController = TextEditingController();
     passwordController = TextEditingController();
+    GoogleAuthService.onLoadingChanged = (loading) {
+      if (mounted) setState(() => _isLoading = loading);
+    };
   }
 
   @override
@@ -82,22 +86,25 @@ class _RegisterMainState extends State<RegisterMain> {
     fullNameController.dispose();
     emailController.dispose();
     passwordController.dispose();
+    GoogleAuthService.onLoadingChanged = null;
     super.dispose();
+
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth= MediaQuery.of(context).size.width;
+    bool isMobile = screenWidth<450;
 
     return Padding(
-      padding: const EdgeInsets.all(40.0),
+      padding:  EdgeInsets.all(isMobile?16.0:40.0),
       child: Form(
         key: _formKey,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Register Icon and Heading
             Row(
               children: [
                 Container(
@@ -247,9 +254,7 @@ class _RegisterMainState extends State<RegisterMain> {
               onPressed: GoogleAuthService.signInWithGoogle,
               child: const Text('Sign up with Google'),
             ),
-            // Sign Up Link
             SizedBox(height: 20),
-            // Login Link
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

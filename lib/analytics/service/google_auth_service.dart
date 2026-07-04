@@ -5,7 +5,10 @@ import 'package:apitor/analytics/service/api_client.dart';
 import 'package:apitor/analytics/service/api_config.dart';
 import 'package:apitor/analytics/service/storage/jwt_token_storage_service.dart';
 import 'package:apitor/analytics/service/storage/user_profile_storage_service.dart';
+import 'package:apitor/components/custom_snack_bar.dart';
+import 'package:apitor/routing/global_scaffold_messenger_key.dart';
 import 'package:apitor/routing/router.dart';
+import 'package:apitor/routing/user_session.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -13,6 +16,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 class GoogleAuthService {
   static final GoogleSignIn _signIn = GoogleSignIn.instance;
 
+  static void Function(bool isLoading)? onLoadingChanged;
 
 
   static Future<void> initialize() async {
@@ -32,17 +36,28 @@ class GoogleAuthService {
     // unawaited(_signIn.attemptLightweightAuthentication());
   }
 
-  static void _handleAuthenticationEvent(GoogleSignInAuthenticationEvent event) {
-    switch (event) {
+  static void _handleAuthenticationEvent(GoogleSignInAuthenticationEvent event) async {
+    switch (event)  {
       case GoogleSignInAuthenticationEventSignIn():
         final idToken = event.user.authentication.idToken;
         if (idToken != null) {
-          sendTokenToBackend(idToken).then((loginResponse) {
-            JwtTokenStorage.saveToken(loginResponse.token);
-            UserProfileStorageService.saveProfile(loginResponse.userDetails);
-          });
-
-          router.go('/dashboard');
+          try{ 
+            onLoadingChanged?.call(true);
+            final loginResponse = await sendTokenToBackend(idToken);
+            await JwtTokenStorage.saveToken(loginResponse.token);
+            await UserProfileStorageService.saveProfile(loginResponse.userDetails);
+            UserSession.instance.setUser(loginResponse.userDetails);
+            scaffoldMessengerKey.currentState?.showSnackBar(
+              CustomSnackBar.success('Signed In Sucessfully', 'Verified credentials with google')
+            );
+            router.go('/dashboard');
+          }catch(e){
+            scaffoldMessengerKey.currentState?.showSnackBar(
+              CustomSnackBar.error('Failed To Login', e)
+            );
+          }finally{
+            onLoadingChanged?.call(false);
+          }
         }
         break;
       case GoogleSignInAuthenticationEventSignOut():
@@ -50,8 +65,10 @@ class GoogleAuthService {
     }
   }
 
-  static void _handleAuthenticationError(Object error) {
-
+  static void _handleAuthenticationError(Object e) {
+      scaffoldMessengerKey.currentState?.showSnackBar(
+        CustomSnackBar.error('Failed To Authenticate', e)
+      );
   }
 
   static Future<void> signInWithGoogle() async {
@@ -63,7 +80,7 @@ class GoogleAuthService {
   static Future<LoginResponseDTO> sendTokenToBackend(String tokenId) async {
     final response = await ApiClient.post(
       ApiConfiguration.oAuth2GoogleEndpoint,
-      {'tokenId': tokenId},
+      {'tokenId':tokenId},
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {

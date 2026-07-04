@@ -34,6 +34,8 @@ class ApiConfiguration{
   static const String createProjectEndpoint = "/project/create";
   static const String getAllProjectsEndpoint = "/project/all";
   static String getProjectByIdEndpoint(int id)=> "/project/$id";
+  static String updateProjectByIdEndpoint(int id)=> "/project/$id";
+  static String deleteProjectByIdEndpoint(int id)=> "/project/$id";
 
   // metrics-analytics endpoints
   static String getAnalyticsByProjectIdEndpoint(int projectId, {DateTime? startTime, DateTime? endTime, String? anlyticsTimeGranularity, String? timezone}){
@@ -55,6 +57,4 @@ class ApiConfiguration{
     return 
     Uri.parse(baseUrl + endpoint);
   }
-
-
 }

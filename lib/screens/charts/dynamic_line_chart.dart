@@ -7,6 +7,7 @@ class DynamicLineChart extends StatelessWidget {
   final List<String> dataKeys;     
   final List<Color> lineColors;   
   final double chartHeight;
+  final double edgePadding;
 
   const DynamicLineChart({
     super.key,
@@ -15,6 +16,7 @@ class DynamicLineChart extends StatelessWidget {
     required this.dataKeys,
     required this.lineColors,
     this.chartHeight = 260.0,
+    this.edgePadding = 0.25,
   });
 
   @override
@@ -55,7 +57,7 @@ class DynamicLineChart extends StatelessWidget {
           return SideTitleWidget(
             meta: meta,
             space: 6,
-            child: Text(value.toInt().toString(),
+            child: Text(value.round().toString(),
                 style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
           );
         },
@@ -85,7 +87,7 @@ class DynamicLineChart extends StatelessWidget {
       });
     }
 
-    final double computedChartWidth = dataList.length * 65.0;
+    final double computedChartWidth = dataList.length* 65.0 + 2*edgePadding*65.0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -143,6 +145,8 @@ class DynamicLineChart extends StatelessWidget {
                       LineChartData(
                         maxY: maxY,
                         minY: 0,
+                        minX: -edgePadding,
+                        maxX: dataList.length-1+edgePadding,
                         lineTouchData: LineTouchData(
                           handleBuiltInTouches: true,
                           distanceCalculator: (touchPoint, spotPixelCoordinates) {
@@ -161,7 +165,7 @@ class DynamicLineChart extends StatelessWidget {
                                 final Color lineColor = lineColors[touchedSpot.barIndex % lineColors.length];
 
                                 return LineTooltipItem(
-                                  '$keyName: ${touchedSpot.y.toInt()}',
+                                  '$keyName: ${touchedSpot.y.round()}',
                                   TextStyle(
                                     color: lineColor.withValues(alpha: 0.9),
                                     fontWeight: FontWeight.bold,
@@ -175,6 +179,7 @@ class DynamicLineChart extends StatelessWidget {
                         gridData: FlGridData(
                           show: true,
                           drawVerticalLine: false,
+                          horizontalInterval: sideTitleInterval,
                           getDrawingHorizontalLine: (value) => FlLine(
                             color: Colors.grey.shade200,
                             strokeWidth: 1,
@@ -198,8 +203,12 @@ class DynamicLineChart extends StatelessWidget {
                             sideTitles: SideTitles(
                               showTitles: true,
                               reservedSize: 32,
+      
                               interval: 1,
                               getTitlesWidget: (value, meta) {
+                                if((value - value.round()).abs() > 0.001){
+                                  return const SizedBox.shrink();
+                                }
                                 int index = value.toInt();
                                 if (index >= 0 && index < dataList.length) {
                                   return SideTitleWidget(

@@ -23,7 +23,7 @@ class DashboardComponent extends StatelessWidget {
       final UserDetailsDTO user = userDetails;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding:  EdgeInsets.symmetric(horizontal: (isMobile?16:24), vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

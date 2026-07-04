@@ -6,7 +6,7 @@ import 'package:apitor/components/analytics_date_filter.dart';
 import 'package:apitor/components/custom_expanded.dart';
 import 'package:apitor/screens/charts/dynamic_bar_chart.dart';
 import 'package:apitor/screens/charts/dynamic_line_chart.dart';
-import 'package:apitor/screens/dashboard/project_token_field.dart';
+import 'package:apitor/screens/dashboard/project_page.dart';
 import 'package:flutter/material.dart';
 import 'package:apitor/analytics/data/project_details_dto.dart';
 import 'package:intl/intl.dart';
@@ -51,26 +51,20 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-      double screenWidth = MediaQuery.of(context).size.width;
+    double screenWidth = MediaQuery.of(context).size.width;
     bool isMobile = screenWidth<450;
-
+    double chartHeight = isMobile? 200 : 260;
     return Container(
-      padding: const EdgeInsets.all(12),
+        padding:  EdgeInsets.symmetric(horizontal: (isMobile?16:24), vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(24.0),
+            // padding: const EdgeInsets.all(24.0),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.primaryColor.withValues(alpha: 0.08),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,35 +109,41 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.grey[200]!,
+                Card(
+                  elevation: 2,
+                  shadowColor: theme.shadowColor.withValues(alpha: 0.2),
+                  margin: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.grey[200]!,
+                      ),
                     ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildProjectDetailRow(
-                        'Project ID',
-                        widget.project.id.toString(),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildProjectDetailRow(
-                        'Target URL',
-                        widget.project.targetURL,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildTokenDetailRow(widget.project.projectToken),
-                      const SizedBox(height: 8),
-                      _buildProjectDetailRow(
-                        'Created At',
-                        DateFormat('dd-MMM-yyyy').format(widget.project.createdAt.toLocal()),
-                      ),
-                    ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildProjectDetailRow(
+                          'Project ID',
+                          widget.project.id.toString(),
+                        ),
+                        const SizedBox(height: 8),
+                        _buildProjectDetailRow(
+                          'Target URL',
+                          widget.project.targetURL,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildTokenDetailRow(widget.project.projectToken),
+                        const SizedBox(height: 8),
+                        _buildProjectDetailRow(
+                          'Created At',
+                          DateFormat('dd-MMM-yyyy').format(widget.project.createdAt.toLocal()),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -151,11 +151,11 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
           ),
           SizedBox(height: 10,),
           AnalyticsFilterCard(
-            onFiltersChanged: ( startTime,  endTime,  granularity){
+            onFiltersChanged: ( newStartTime,  newEndTime,  newGranularity){
                 setState((){
-                  startTime=startTime;
-                  endTime=endTime;
-                  granularity=granularity;
+                  startTime=newStartTime;
+                  endTime=newEndTime;
+                  granularity=newGranularity;
                   metricsFuture=MetricsAnalyticsService.getAnalytics(widget.project.id, startTime: startTime, endTime: endTime, analyticsTimeGranularity: granularity.value);
                 });
             },
@@ -208,10 +208,10 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
 
               if (snapshot.hasData) {
                 final metricsData = snapshot.data!;
-
+           
                 return showPeriodicAnalytics
-                    ? _buildPeriodicAnalyticsView(theme, metricsData, isMobile)
-                    : _buildRouteAnalyticsView(theme, metricsData);
+                    ? _buildPeriodicAnalyticsView(theme, metricsData, isMobile, chartHeight)
+                    : _buildRouteAnalyticsView(theme, metricsData, chartHeight);
               }
 
               return const Padding(
@@ -334,7 +334,8 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
   Widget _buildPeriodicAnalyticsView(
     ThemeData theme,
     MetricsAnalyticsDTO data,
-    bool isMobile
+    bool isMobile,
+    double chartHeight
   ) {
     if (data.periodicAnalytics.isEmpty) {
       return Padding(
@@ -356,12 +357,10 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
     );
 
 
-    final statusCodeData = _toMapFrequencyBarData(
+    final statusCodeData = _toMapStatusFrequencyBarData(
       periods,
       (period) => period.statusCodeFrequencies,
     );
-
-    final statusCodeKeys = _extractMapKeys(statusCodeData, 'periodLabel');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,11 +380,11 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
                   xAxisKey: 'periodLabel',
                   dataKeys: const ['apiHitCount'],
                   lineColors: [Colors.purple.shade400],
-                  chartHeight: 240,
+                  chartHeight: chartHeight,
                 ),
               ),
             ),
-            const SizedBox(width: 16, height:16),
+            const SizedBox(width: 16),
             CustomExpanded(
               isExpanded: !isMobile,
               child: ChartCard(
@@ -397,7 +396,7 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
                   xAxisKey: 'periodLabel',
                   dataKeys: const ['uniqueIpCount'],
                   lineColors: const [Color(0xFF10B981)],
-                  chartHeight: 240,
+                  chartHeight: chartHeight,
                 ),
               ),
             ),
@@ -412,7 +411,7 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
             xAxisKey: 'periodLabel',
             dataKeys: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
             barColors:[ Colors.green.shade400, Colors.orange.shade300, Colors.blue.shade400, Colors.red.shade400, Colors.purple.shade400],
-            chartHeight: 280,
+            chartHeight: chartHeight,
           ),
         ),
         Flex(
@@ -438,11 +437,11 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
                     Colors.orange.shade400,
                     Colors.red.shade400,
                   ],
-                  chartHeight: 240,
+                  chartHeight: chartHeight,
                 ),
               ),
             ),
-            const SizedBox(width: 16, height:16),
+            const SizedBox(width: 16),
             CustomExpanded(
               isExpanded: !isMobile,
               child: ChartCard(
@@ -460,7 +459,7 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
                     Colors.green.shade400,
                     Colors.red.shade400,
                   ],
-                  chartHeight: 240,
+                  chartHeight: chartHeight,
                 ),
               ),
             ),
@@ -468,30 +467,24 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
         ),
         ChartCard(
           title: 'Status Codes',
-          legendLabels: statusCodeKeys,
+          legendLabels: ['2XX Success', '3XX Redirecting', '4XX Client Error', '5XX Server Error'],
           legendColors:  [
               Colors.green.shade400,
               Colors.teal.shade400,
-              Colors.yellow.shade400,
               Colors.orange.shade400,
-              Colors.red.shade400,
-              Colors.pink.shade400,
               Colors.purple.shade400
             ],
           chart: DynamicBarChart(
             dataList: statusCodeData,
             xAxisKey: 'periodLabel',
-            dataKeys: ['200', '201', '400', '401', '403', '404', '500'],
+            dataKeys: ['2XX', '3XX', '4XX', '5XX'],
             barColors: [
               Colors.green.shade400,
               Colors.teal.shade400,
-              Colors.yellow.shade400,
               Colors.orange.shade400,
-              Colors.red.shade400,
-              Colors.pink.shade400,
               Colors.purple.shade400
             ],
-            chartHeight: 280,
+            chartHeight: chartHeight,
           ),
         ),
       ],
@@ -501,6 +494,7 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
   Widget _buildRouteAnalyticsView(
     ThemeData theme,
     MetricsAnalyticsDTO data,
+    double chartHeight
   ) {
     if (data.routeAnalytics.isEmpty) {
       return Padding(
@@ -529,7 +523,7 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
             xAxisKey: 'endpointPath',
             dataKeys: const ['requestHits'],
             barColors: [Colors.purple.shade400],
-            chartHeight: 280,
+            chartHeight: chartHeight,
             angle: -0.15, 
           ),
         ),
@@ -550,7 +544,7 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
             Colors.orange.shade400,
             Colors.red.shade400,
           ],
-            chartHeight: 280,
+            chartHeight: chartHeight,
             angle: -0.15,
           ),
         ),
@@ -613,15 +607,37 @@ class _MetricsAnalyticsPageState extends State<MetricsAnalyticsPage> {
     }).toList();
   }
 
-  List<String> _extractMapKeys(
-    List<Map<String, dynamic>> dataList,
-    String xAxisKey,
-  ) {
-    if (dataList.isEmpty) return [];
-    return dataList.first.keys.where((key) => key != xAxisKey).toList();
-  }
+  List<Map<String, dynamic>> _toMapStatusFrequencyBarData(
+    List<PeriodicAnalyticsDTO> periods,
+    Map<String, int> Function(PeriodicAnalyticsDTO) frequencySelector
+  ){
+    return periods.map((period){
+      final Map<String, dynamic> row = {
+        'periodLabel' : period.periodLabel,
+        '2XX' : 0,
+        '3XX' : 0,
+        '4XX' : 0,
+        '5XX' : 0
+      };
 
- 
+      final frequencies= frequencySelector(period);
+
+      frequencies.forEach((statusCode, count){
+        final int? code = int.tryParse(statusCode);
+        if(code ==null) return;
+        if(code>=200 && code<300){
+          row['2XX']= (row['2XX'] as int) + count;
+        } else if(code>=300 && code<400){
+          row['3XX']= (row['3XX'] as int) + count;
+        } else if(code>=400 && code<500){
+          row['4XX']= (row['4XX'] as int) + count;
+        } else if(code>=500 && code<600){
+          row['5XX']= (row['5XX'] as int) + count;
+        }
+      });
+      return row;
+    }).toList();
+  } 
 
 }
 

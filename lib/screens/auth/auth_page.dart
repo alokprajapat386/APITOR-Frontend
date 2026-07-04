@@ -54,8 +54,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: Container(
                         // width: 0.75*screenWidth,
                          constraints: BoxConstraints(
-                          minWidth: isMobile?300:750, 
-                          maxWidth: isMobile?(screenWidth * 0.75 < 300 ? 300 : screenWidth * 0.75):
+                          minWidth: isMobile?310:750, 
+                          maxWidth: isMobile?(screenWidth * 0.9 < 310 ? 310 : screenWidth * 0.9):
                           (screenWidth * 0.75 < 750 ? 750 : screenWidth * 0.75)
                         ),
                         decoration: BoxDecoration(
@@ -108,8 +108,10 @@ class AboutUs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth= MediaQuery.of(context).size.width;
+    bool isMobile = screenWidth<450;
     return Padding(
-      padding: EdgeInsets.all(40),
+      padding: EdgeInsets.all(isMobile?16:40),
       child:Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,11 +126,11 @@ class AboutUs extends StatelessWidget {
                   color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                   borderRadius:  BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  Icons.api,
-                  size: 30,
-                  color: Theme.of(context).primaryColor
-                ),
+                child: Image.asset(
+                  'assets/icons/apitor_logo.png',
+                  width: 30,
+                  height: 30,
+                )
               ),
               const SizedBox(width: 12,),
               ShaderMask(
